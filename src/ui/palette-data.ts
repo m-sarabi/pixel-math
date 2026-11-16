@@ -1,0 +1,198 @@
+export interface PaletteItem {
+  label: string;
+  insert: string;
+  cursorOffset?: number; // offset from end of insert
+  desc?: string;
+}
+
+export interface PaletteTab {
+  id: string;
+  title: string;
+  items: PaletteItem[];
+}
+
+export const TEMPLATES: { name: string; latex: string; desc: string }[] = [
+  {
+    name: 'Quadratic Formula',
+    desc: 'Roots of ax² + bx + c = 0',
+    latex: '\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
+  },
+  {
+    name: 'Basel Problem',
+    desc: 'Sum of reciprocal squares',
+    latex: '\\sum_{n=1}^{\\infty} \\frac{1}{n^2} = \\frac{\\pi^2}{6}',
+  },
+  {
+    name: 'Calculus Integral',
+    desc: 'Indefinite trigonometric integral',
+    latex: '\\int \\cos x\\,dx = \\sin x + C',
+  },
+  {
+    name: 'Piecewise Cases',
+    desc: 'Delimited rational function & cases',
+    latex: '\\left( \\frac{x^2 + 1}{y - 3} \\right) = \\begin{cases} 1 & x \\geq 0 \\\\ -1 & x < 0 \\end{cases}',
+  },
+  {
+    name: "Euler's Identity",
+    desc: 'Famous relation connecting constants',
+    latex: 'e^{i\\pi} + 1 = 0',
+  },
+  {
+    name: 'Gaussian Integral',
+    desc: 'Definite integral of bell curve',
+    latex: '\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}',
+  },
+  {
+    name: "Maxwell's Equation",
+    desc: "Faraday's law of induction",
+    latex: '\\nabla \\times \\vec{E} = -\\frac{\\partial \\vec{B}}{\\partial t}',
+  },
+  {
+    name: 'Matrix System',
+    desc: '2×2 linear system',
+    latex: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix} \\begin{pmatrix} x \\\\ y \\end{pmatrix} = \\begin{pmatrix} 0 \\\\ 0 \\end{pmatrix}',
+  },
+  {
+    name: 'Schrödinger Eq.',
+    desc: 'Quantum state wave equation',
+    latex: 'i\\hbar \\frac{\\partial}{\\partial t}\\Psi = \\hat{H}\\Psi',
+  },
+];
+
+export const PALETTE_TABS: PaletteTab[] = [
+  {
+    id: 'structures',
+    title: 'Structures',
+    items: [
+      { label: 'a/b', insert: '\\frac{a}{b}', desc: 'Fraction' },
+      { label: '√x', insert: '\\sqrt{x}', desc: 'Square Root' },
+      { label: 'ⁿ√x', insert: '\\sqrt[n]{x}', desc: 'N-th Root' },
+      { label: 'xⁿ', insert: 'x^{2}', desc: 'Superscript' },
+      { label: 'xᵢ', insert: 'x_{i}', desc: 'Subscript' },
+      { label: 'xᵢⁿ', insert: 'x_{i}^{2}', desc: 'Sub + Super' },
+      { label: '∑', insert: '\\sum_{i=1}^{n}', desc: 'Summation' },
+      { label: '∏', insert: '\\prod_{i=1}^{n}', desc: 'Product' },
+      { label: '∫', insert: '\\int_{a}^{b}', desc: 'Integral' },
+      { label: '( )', insert: '\\left( x \\right)', desc: 'Stretchy Parens' },
+      { label: '[ ]', insert: '\\left[ x \\right]', desc: 'Stretchy Brackets' },
+      { label: '{ }', insert: '\\left\\{ x \\right\\}', desc: 'Stretchy Braces' },
+      { label: '|x|', insert: '\\left| x \\right|', desc: 'Absolute Value' },
+      { label: 'cases', insert: '\\begin{cases} 1 & x \\geq 0 \\\\ 0 & x < 0 \\end{cases}', desc: 'Cases' },
+      { label: 'matrix', insert: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', desc: '2×2 Matrix' },
+      { label: 'vec', insert: '\\vec{v}', desc: 'Vector Accent' },
+      { label: 'hat', insert: '\\hat{x}', desc: 'Hat Accent' },
+      { label: 'bar', insert: '\\bar{x}', desc: 'Bar Accent' },
+    ],
+  },
+  {
+    id: 'greek_lower',
+    title: 'Greek (Low)',
+    items: [
+      { label: 'α', insert: '\\alpha ' },
+      { label: 'β', insert: '\\beta ' },
+      { label: 'γ', insert: '\\gamma ' },
+      { label: 'δ', insert: '\\delta ' },
+      { label: 'ε', insert: '\\epsilon ' },
+      { label: 'ζ', insert: '\\zeta ' },
+      { label: 'η', insert: '\\eta ' },
+      { label: 'θ', insert: '\\theta ' },
+      { label: 'ι', insert: '\\iota ' },
+      { label: 'κ', insert: '\\kappa ' },
+      { label: 'λ', insert: '\\lambda ' },
+      { label: 'μ', insert: '\\mu ' },
+      { label: 'ν', insert: '\\nu ' },
+      { label: 'ξ', insert: '\\xi ' },
+      { label: 'π', insert: '\\pi ' },
+      { label: 'ρ', insert: '\\rho ' },
+      { label: 'σ', insert: '\\sigma ' },
+      { label: 'τ', insert: '\\tau ' },
+      { label: 'υ', insert: '\\upsilon ' },
+      { label: 'φ', insert: '\\phi ' },
+      { label: 'χ', insert: '\\chi ' },
+      { label: 'ψ', insert: '\\psi ' },
+      { label: 'ω', insert: '\\omega ' },
+    ],
+  },
+  {
+    id: 'greek_upper',
+    title: 'Greek (Up)',
+    items: [
+      { label: 'Γ', insert: '\\Gamma ' },
+      { label: 'Δ', insert: '\\Delta ' },
+      { label: 'Θ', insert: '\\Theta ' },
+      { label: 'Λ', insert: '\\Lambda ' },
+      { label: 'Ξ', insert: '\\Xi ' },
+      { label: 'Π', insert: '\\Pi ' },
+      { label: 'Σ', insert: '\\Sigma ' },
+      { label: 'Υ', insert: '\\Upsilon ' },
+      { label: 'Φ', insert: '\\Phi ' },
+      { label: 'Ψ', insert: '\\Psi ' },
+      { label: 'Ω', insert: '\\Omega ' },
+    ],
+  },
+  {
+    id: 'operators',
+    title: 'Operators',
+    items: [
+      { label: '+', insert: '+ ' },
+      { label: '−', insert: '- ' },
+      { label: '±', insert: '\\pm ' },
+      { label: '∓', insert: '\\mp ' },
+      { label: '×', insert: '\\times ' },
+      { label: '÷', insert: '\\div ' },
+      { label: '·', insert: '\\cdot ' },
+      { label: '∪', insert: '\\cup ' },
+      { label: '∩', insert: '\\cap ' },
+      { label: '∂', insert: '\\partial ' },
+      { label: '∇', insert: '\\nabla ' },
+      { label: '∞', insert: '\\infty ' },
+    ],
+  },
+  {
+    id: 'relations',
+    title: 'Relations',
+    items: [
+      { label: '=', insert: '= ' },
+      { label: '≠', insert: '\\neq ' },
+      { label: '<', insert: '< ' },
+      { label: '>', insert: '> ' },
+      { label: '≤', insert: '\\leq ' },
+      { label: '≥', insert: '\\geq ' },
+      { label: '≈', insert: '\\approx ' },
+      { label: '≡', insert: '\\equiv ' },
+      { label: '∼', insert: '\\sim ' },
+      { label: '∝', insert: '\\propto ' },
+      { label: '→', insert: '\\to ' },
+      { label: '↦', insert: '\\mapsto ' },
+      { label: '⇒', insert: '\\Rightarrow ' },
+      { label: '⇔', insert: '\\Leftrightarrow ' },
+      { label: '∈', insert: '\\in ' },
+      { label: '∉', insert: '\\notin ' },
+      { label: '⊂', insert: '\\subset ' },
+      { label: '∀', insert: '\\forall ' },
+      { label: '∃', insert: '\\exists ' },
+    ],
+  },
+  {
+    id: 'functions',
+    title: 'Functions',
+    items: [
+      { label: 'sin', insert: '\\sin ' },
+      { label: 'cos', insert: '\\cos ' },
+      { label: 'tan', insert: '\\tan ' },
+      { label: 'arcsin', insert: '\\arcsin ' },
+      { label: 'arccos', insert: '\\arccos ' },
+      { label: 'arctan', insert: '\\arctan ' },
+      { label: 'ln', insert: '\\ln ' },
+      { label: 'log', insert: '\\log ' },
+      { label: 'exp', insert: '\\exp ' },
+      { label: 'lim', insert: '\\lim_{x \\to 0} ' },
+      { label: 'max', insert: '\\max ' },
+      { label: 'min', insert: '\\min ' },
+      { label: 'det', insert: '\\det ' },
+      { label: 'gcd', insert: '\\gcd ' },
+      { label: 'thinspace', insert: '\\, ' },
+      { label: 'quad', insert: '\\quad ' },
+    ],
+  },
+];
