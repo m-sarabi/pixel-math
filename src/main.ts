@@ -17,13 +17,12 @@ function hexToRgba(hex: string, alpha: number = 255): RGBAColor {
   };
 }
 
-// App State
+// App State (Locked to Standard 7x9 Font)
 interface AppState {
   latex: string;
-  presetId: 'compact' | 'standard' | 'large';
   padding: number;
   fgHex: string;
-  bgHex: string | null; // null for transparent
+  bgHex: string | null;
   zoom: number;
   showGrid: boolean;
   viewportBg: 'checkerboard' | 'solid-black' | 'solid-white';
@@ -31,8 +30,7 @@ interface AppState {
 }
 
 const state: AppState = {
-  latex: '\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
-  presetId: 'standard',
+  latex: '\\sin^2 x + \\cos^2 x = 1',
   padding: 2,
   fgHex: '#ffffff',
   bgHex: null, // transparent
@@ -107,19 +105,17 @@ app.innerHTML = `
         <div class="palette-grid" id="paletteGrid"></div>
       </div>
 
-      <!-- Font Preset & Padding Card -->
+      <!-- Typography & Padding Card -->
       <div class="section-card">
         <div class="section-title">
-          <span>Bitmap Typography</span>
+          <span>Typography & Layout</span>
         </div>
         
         <div class="setting-row">
-          <span class="setting-label">Cap Height Preset</span>
-          <div class="preset-pill-group" id="fontPresetGroup">
-            <button type="button" class="preset-pill ${state.presetId === 'compact' ? 'active' : ''}" data-preset="compact">Compact 5×7</button>
-            <button type="button" class="preset-pill ${state.presetId === 'standard' ? 'active' : ''}" data-preset="standard">Standard 7×9</button>
-            <button type="button" class="preset-pill ${state.presetId === 'large' ? 'active' : ''}" data-preset="large">Large 9×12</button>
-          </div>
+          <span class="setting-label">Font Engine</span>
+          <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-cyan); background: rgba(0,240,255,0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,240,255,0.25);">
+            Standard 7×9 (4×6 sub)
+          </span>
         </div>
 
         <div class="setting-row" style="margin-top: 0.25rem;">
@@ -138,7 +134,7 @@ app.innerHTML = `
       <div class="section-card">
         <div class="section-title">
           <span>Pixel Art Palette</span>
-          <span style="font-size: 0.7rem; color: var(--text-muted)">1-Bit Strict Alpha</span>
+          <span style="font-size: 0.7rem; color: var(--text-muted)">Strict 1-Bit Alpha</span>
         </div>
 
         <div class="setting-row">
@@ -258,7 +254,6 @@ const errorBanner = document.getElementById('errorBanner') as HTMLDivElement;
 const templateSelect = document.getElementById('templateSelect') as HTMLSelectElement;
 const paletteTabs = document.getElementById('paletteTabs') as HTMLDivElement;
 const paletteGrid = document.getElementById('paletteGrid') as HTMLDivElement;
-const fontPresetGroup = document.getElementById('fontPresetGroup') as HTMLDivElement;
 const paddingGroup = document.getElementById('paddingGroup') as HTMLDivElement;
 const fgSwatches = document.getElementById('fgSwatches') as HTMLDivElement;
 const fgCustom = document.getElementById('fgCustom') as HTMLInputElement;
@@ -333,7 +328,7 @@ function updateRender(): void {
     const bgRgba = state.bgHex ? hexToRgba(state.bgHex, 255) : undefined;
 
     currentResult = PixelMathRenderer.render(state.latex, {
-      presetId: state.presetId,
+      presetId: 'standard',
       padding: state.padding,
       fgColor: fgRgba,
       bgColor: bgRgba,
@@ -392,11 +387,9 @@ function applyZoom(): void {
     gridOverlay.classList.add('visible');
 
     let gridPaths = '';
-    // Vertical grid lines
     for (let x = 1; x < w; x++) {
       gridPaths += `M${x} 0 L${x} ${h} `;
     }
-    // Horizontal grid lines
     for (let y = 1; y < h; y++) {
       gridPaths += `M0 ${y} L${w} ${y} `;
     }
@@ -440,17 +433,6 @@ paletteGrid.addEventListener('click', (e) => {
   const target = (e.target as HTMLElement).closest('.palette-btn') as HTMLButtonElement | null;
   if (target && target.dataset.insert) {
     insertAtCursor(target.dataset.insert);
-  }
-});
-
-// Font presets
-fontPresetGroup.addEventListener('click', (e) => {
-  const target = (e.target as HTMLElement).closest('.preset-pill') as HTMLButtonElement | null;
-  if (target && target.dataset.preset) {
-    state.presetId = target.dataset.preset as any;
-    fontPresetGroup.querySelectorAll('.preset-pill').forEach(btn => btn.classList.remove('active'));
-    target.classList.add('active');
-    updateRender();
   }
 });
 
@@ -563,7 +545,6 @@ copyPngBtn.addEventListener('click', async () => {
     showToast('PNG copied to clipboard!');
   } catch (err) {
     console.error('Clipboard copy failed:', err);
-    // Fallback: copy base64 data url
     try {
       await navigator.clipboard.writeText(currentResult.dataUrl);
       showToast('Copied PNG Data URL!');

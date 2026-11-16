@@ -1,7 +1,7 @@
 export interface PaletteItem {
   label: string;
   insert: string;
-  cursorOffset?: number; // offset from end of insert
+  cursorOffset?: number;
   desc?: string;
 }
 
@@ -13,9 +13,29 @@ export interface PaletteTab {
 
 export const TEMPLATES: { name: string; latex: string; desc: string }[] = [
   {
+    name: 'Pythagorean Identity',
+    desc: 'Trig powers & function spacing',
+    latex: '\\sin^2 x + \\cos^2 x = 1',
+  },
+  {
+    name: 'Stretchy Integral & Rational Frac',
+    desc: 'Dynamically stretching integral symbol',
+    latex: '\\int \\frac{1}{x^2 + 1}\\,dx = \\arctan x + C',
+  },
+  {
     name: 'Quadratic Formula',
     desc: 'Roots of ax² + bx + c = 0',
     latex: '\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
+  },
+  {
+    name: 'Symmetric Braces & Cases',
+    desc: 'Mirrored curly braces and piecewise',
+    latex: '\\left\\{ \\frac{x^2 + 1}{y - 3} \\right\\} = \\begin{cases} 1 & x \\geq 0 \\\\ -1 & x < 0 \\end{cases}',
+  },
+  {
+    name: 'Gaussian Definite Integral',
+    desc: 'Integral with limits at hooks',
+    latex: '\\int_{-\\infty}^{\\infty} e^{-x^2}\\,dx = \\sqrt{\\pi}',
   },
   {
     name: 'Basel Problem',
@@ -23,24 +43,14 @@ export const TEMPLATES: { name: string; latex: string; desc: string }[] = [
     latex: '\\sum_{n=1}^{\\infty} \\frac{1}{n^2} = \\frac{\\pi^2}{6}',
   },
   {
-    name: 'Calculus Integral',
-    desc: 'Indefinite trigonometric integral',
-    latex: '\\int \\cos x\\,dx = \\sin x + C',
-  },
-  {
-    name: 'Piecewise Cases',
-    desc: 'Delimited rational function & cases',
-    latex: '\\left( \\frac{x^2 + 1}{y - 3} \\right) = \\begin{cases} 1 & x \\geq 0 \\\\ -1 & x < 0 \\end{cases}',
-  },
-  {
     name: "Euler's Identity",
     desc: 'Famous relation connecting constants',
     latex: 'e^{i\\pi} + 1 = 0',
   },
   {
-    name: 'Gaussian Integral',
-    desc: 'Definite integral of bell curve',
-    latex: '\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}',
+    name: 'Greek Lowercase Alphabet',
+    desc: 'Refined mathematical Greek glyphs',
+    latex: '\\alpha\\beta\\gamma\\delta\\epsilon\\zeta\\eta\\theta\\iota\\kappa\\lambda\\mu\\nu\\xi\\pi\\rho\\sigma\\tau\\upsilon\\phi\\chi\\psi\\omega',
   },
   {
     name: "Maxwell's Equation",
@@ -72,10 +82,11 @@ export const PALETTE_TABS: PaletteTab[] = [
       { label: 'xᵢⁿ', insert: 'x_{i}^{2}', desc: 'Sub + Super' },
       { label: '∑', insert: '\\sum_{i=1}^{n}', desc: 'Summation' },
       { label: '∏', insert: '\\prod_{i=1}^{n}', desc: 'Product' },
-      { label: '∫', insert: '\\int_{a}^{b}', desc: 'Integral' },
+      { label: '∫', insert: '\\int ', desc: 'Stretchy Integral' },
+      { label: '∫ₐᵇ', insert: '\\int_{a}^{b} ', desc: 'Integral with limits' },
       { label: '( )', insert: '\\left( x \\right)', desc: 'Stretchy Parens' },
       { label: '[ ]', insert: '\\left[ x \\right]', desc: 'Stretchy Brackets' },
-      { label: '{ }', insert: '\\left\\{ x \\right\\}', desc: 'Stretchy Braces' },
+      { label: '{ }', insert: '\\left\\{ x \\right\\}', desc: 'Symmetric Braces' },
       { label: '|x|', insert: '\\left| x \\right|', desc: 'Absolute Value' },
       { label: 'cases', insert: '\\begin{cases} 1 & x \\geq 0 \\\\ 0 & x < 0 \\end{cases}', desc: 'Cases' },
       { label: 'matrix', insert: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', desc: '2×2 Matrix' },

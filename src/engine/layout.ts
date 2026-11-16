@@ -18,7 +18,6 @@ export class GlyphBox implements Box {
   }
 
   public render(target: PixelTarget, x: number, y: number): void {
-    // Top-left of glyph is at (x, y - height)
     const startY = y - this.height;
     const rows = this.glyph.rows;
     for (let r = 0; r < rows.length; r++) {
@@ -43,9 +42,7 @@ export class SpaceBox implements Box {
     this.width = Math.max(0, width);
   }
 
-  public render(): void {
-    // Space renders nothing
-  }
+  public render(): void {}
 }
 
 export class RuleBox implements Box {
@@ -69,7 +66,7 @@ export class RuleBox implements Box {
 export interface ChildItem {
   box: Box;
   xOffset: number;
-  yOffset: number; // offset relative to parent baseline (positive is down, negative is up)
+  yOffset: number;
 }
 
 export class HBox implements Box {
@@ -86,9 +83,6 @@ export class HBox implements Box {
     let calculatedW = 0;
 
     for (const item of children) {
-      // item baseline is at yOffset
-      // item top is at yOffset - item.box.height
-      // item bottom is at yOffset + item.box.depth
       const topDist = item.box.height - item.yOffset;
       const bottomDist = item.box.depth + item.yOffset;
 
@@ -112,7 +106,135 @@ export class HBox implements Box {
   }
 }
 
-// Delimiter drawing helper
+// 100% Mathematically Symmetrical Curly Braces
+function drawCurlyBrace(
+  target: PixelTarget,
+  x: number,
+  y: number,
+  h: number,
+  isRight: boolean
+): void {
+  // Width is 4 columns: 0, 1, 2, 3
+  const setP = (col: number, row: number) => {
+    const px = isRight ? x + (3 - col) : x + col;
+    target.setPixel(px, row, true);
+  };
+  const fillH = (colStart: number, row: number, len: number) => {
+    for (let c = 0; c < len; c++) {
+      setP(colStart + c, row);
+    }
+  };
+
+  if (h <= 6) {
+    setP(2, y);
+    setP(1, y + 1);
+    setP(0, y + Math.floor(h / 2));
+    setP(1, y + h - 2);
+    setP(2, y + h - 1);
+    return;
+  }
+
+  // Top hook: cols 2, 3 at row 0; col 1 at row 1
+  fillH(2, y, 2);
+  setP(1, y + 1);
+
+  // Bottom hook: col 1 at row h-2; cols 2, 3 at row h-1
+  setP(1, y + h - 2);
+  fillH(2, y + h - 1, 2);
+
+  const midY = y + Math.floor(h / 2);
+
+  if (h % 2 === 1) {
+    // Odd height: single sharp 1px tip at midY
+    setP(1, midY - 1);
+    setP(0, midY); // tip
+    setP(1, midY + 1);
+
+    for (let r = y + 2; r <= midY - 2; r++) {
+      setP(1, r);
+    }
+    for (let r = midY + 2; r <= y + h - 3; r++) {
+      setP(1, r);
+    }
+  } else {
+    // Even height: 2px tip at midY - 1 and midY
+    setP(1, midY - 2);
+    setP(0, midY - 1); // tip top
+    setP(0, midY);     // tip bot
+    setP(1, midY + 1);
+
+    for (let r = y + 2; r <= midY - 3; r++) {
+      setP(1, r);
+    }
+    for (let r = midY + 2; r <= y + h - 3; r++) {
+      setP(1, r);
+    }
+  }
+}
+
+// 100% Symmetrical Stretchy Parentheses
+function drawStretchyParen(
+  target: PixelTarget,
+  x: number,
+  y: number,
+  h: number,
+  isRight: boolean
+): void {
+  // Width 3: cols 0, 1, 2
+  const setP = (col: number, row: number) => {
+    const px = isRight ? x + (2 - col) : x + col;
+    target.setPixel(px, row, true);
+  };
+
+  if (h <= 4) {
+    for (let r = 0; r < h; r++) setP(0, y + r);
+    return;
+  }
+
+  // Top arc
+  setP(2, y);
+  setP(1, y + 1);
+
+  // Vertical stem
+  for (let r = y + 2; r <= y + h - 3; r++) {
+    setP(0, r);
+  }
+
+  // Bottom arc
+  setP(1, y + h - 2);
+  setP(2, y + h - 1);
+}
+
+// 100% Symmetrical Stretchy Brackets
+function drawStretchyBracket(
+  target: PixelTarget,
+  x: number,
+  y: number,
+  h: number,
+  isRight: boolean
+): void {
+  const setP = (col: number, row: number) => {
+    const px = isRight ? x + (2 - col) : x + col;
+    target.setPixel(px, row, true);
+  };
+
+  // Top overhang
+  setP(0, y);
+  setP(1, y);
+  setP(2, y);
+
+  // Vertical stem
+  for (let r = y + 1; r < y + h - 1; r++) {
+    setP(0, r);
+  }
+
+  // Bottom overhang
+  setP(0, y + h - 1);
+  setP(1, y + h - 1);
+  setP(2, y + h - 1);
+}
+
+// Stretchy Delimiter Dispatcher
 function drawStretchyDelimiter(
   delim: string,
   target: PixelTarget,
@@ -121,80 +243,23 @@ function drawStretchyDelimiter(
   totalH: number,
   ruleThickness: number = 1
 ): void {
-  // y is top of delimiter
   const h = totalH;
   if (h <= 0) return;
 
   if (delim === '(') {
-    // Rounded top, vertical bar, rounded bottom
-    if (h <= 8) {
-      // Small
-      target.fillRect(x + 1, y, 1, 1);
-      target.fillRect(x, y + 1, 1, h - 2);
-      target.fillRect(x + 1, y + h - 1, 1, 1);
-    } else {
-      target.fillRect(x + 2, y, 1, 1);
-      target.fillRect(x + 1, y + 1, 1, 1);
-      target.fillRect(x, y + 2, 1, h - 4);
-      target.fillRect(x + 1, y + h - 2, 1, 1);
-      target.fillRect(x + 2, y + h - 1, 1, 1);
-    }
+    drawStretchyParen(target, x, y, h, false);
   } else if (delim === ')') {
-    if (h <= 8) {
-      target.fillRect(x, y, 1, 1);
-      target.fillRect(x + 1, y + 1, 1, h - 2);
-      target.fillRect(x, y + h - 1, 1, 1);
-    } else {
-      target.fillRect(x, y, 1, 1);
-      target.fillRect(x + 1, y + 1, 1, 1);
-      target.fillRect(x + 2, y + 2, 1, h - 4);
-      target.fillRect(x + 1, y + h - 2, 1, 1);
-      target.fillRect(x, y + h - 1, 1, 1);
-    }
+    drawStretchyParen(target, x, y, h, true);
   } else if (delim === '[') {
-    const w = 3;
-    target.fillRect(x, y, w, ruleThickness);
-    target.fillRect(x, y, ruleThickness, h);
-    target.fillRect(x, y + h - ruleThickness, w, ruleThickness);
+    drawStretchyBracket(target, x, y, h, false);
   } else if (delim === ']') {
-    const w = 3;
-    target.fillRect(x, y, w, ruleThickness);
-    target.fillRect(x + w - ruleThickness, y, ruleThickness, h);
-    target.fillRect(x, y + h - ruleThickness, w, ruleThickness);
+    drawStretchyBracket(target, x, y, h, true);
   } else if (delim === '{') {
-    // Curly brace with middle tip
-    const midY = Math.floor(y + h / 2);
-    // Top hook
-    target.fillRect(x + 2, y, 2, 1);
-    target.fillRect(x + 1, y + 1, 1, 1);
-    // Upper vertical stem
-    if (midY - 1 > y + 2) {
-      target.fillRect(x + 1, y + 2, 1, midY - 2 - y);
-    }
-    // Middle tip
-    target.fillRect(x, midY - 1, 1, 2);
-    // Lower vertical stem
-    if (y + h - 2 > midY + 1) {
-      target.fillRect(x + 1, midY + 1, 1, y + h - 2 - (midY + 1));
-    }
-    // Bottom hook
-    target.fillRect(x + 1, y + h - 2, 1, 1);
-    target.fillRect(x + 2, y + h - 1, 2, 1);
+    drawCurlyBrace(target, x, y, h, false);
   } else if (delim === '}') {
-    const midY = Math.floor(y + h / 2);
-    target.fillRect(x, y, 2, 1);
-    target.fillRect(x + 2, y + 1, 1, 1);
-    if (midY - 1 > y + 2) {
-      target.fillRect(x + 2, y + 2, 1, midY - 2 - y);
-    }
-    target.fillRect(x + 3, midY - 1, 1, 2);
-    if (y + h - 2 > midY + 1) {
-      target.fillRect(x + 2, midY + 1, 1, y + h - 2 - (midY + 1));
-    }
-    target.fillRect(x + 2, y + h - 2, 1, 1);
-    target.fillRect(x, y + h - 1, 2, 1);
+    drawCurlyBrace(target, x, y, h, true);
   } else if (delim === '|' || delim === '\\|') {
-    target.fillRect(x, y, ruleThickness, h);
+    target.fillRect(x, y, ruleThickness, h, true);
   }
 }
 
@@ -209,12 +274,13 @@ export class DelimiterBox implements Box {
   constructor(delim: string, height: number, depth: number, ruleThickness: number = 1) {
     this.delim = delim;
     this.ruleThickness = ruleThickness;
-    this.height = height;
-    this.depth = depth;
-    this.totalHeight = height + depth;
+    // Ensure delimiters always have elegant minimum clearance around single-line content
+    this.height = Math.max(9, height + 1);
+    this.depth = Math.max(2, depth + 1);
+    this.totalHeight = this.height + this.depth;
 
     if (delim === '(' || delim === ')') {
-      this.width = this.totalHeight <= 8 ? 2 : 3;
+      this.width = 3;
     } else if (delim === '[' || delim === ']') {
       this.width = 3;
     } else if (delim === '{' || delim === '}') {
@@ -233,6 +299,45 @@ export class DelimiterBox implements Box {
   }
 }
 
+// Dynamically Stretchy Calculus Integral Box
+export class IntegralBox implements Box {
+  public width = 7;
+  public height: number;
+  public depth: number;
+  public totalHeight: number;
+
+  constructor(height: number = 14, depth: number = 6) {
+    this.height = Math.max(14, height);
+    this.depth = Math.max(6, depth);
+    this.totalHeight = this.height + this.depth;
+    this.width = 7;
+  }
+
+  public render(target: PixelTarget, x: number, y: number): void {
+    const topY = y - this.height;
+    const botY = y + this.depth;
+
+    // Top hook: curls to the right
+    target.fillRect(x + 4, topY, 2, 1, true);
+    target.setPixel(x + 3, topY + 1, true);
+    target.setPixel(x + 6, topY + 1, true);
+    target.setPixel(x + 3, topY + 2, true);
+
+    // Bottom hook: curls to the left
+    target.fillRect(x + 1, botY - 1, 2, 1, true);
+    target.setPixel(x, botY - 2, true);
+    target.setPixel(x + 3, botY - 2, true);
+    target.setPixel(x + 3, botY - 3, true);
+
+    // Graceful vertical stem at x + 3
+    const stemTop = topY + 3;
+    const stemBot = botY - 4;
+    if (stemBot >= stemTop) {
+      target.fillRect(x + 3, stemTop, 1, stemBot - stemTop + 1, true);
+    }
+  }
+}
+
 export class RadicalBox implements Box {
   public width: number;
   public height: number;
@@ -247,15 +352,11 @@ export class RadicalBox implements Box {
     this.indexBox = indexBox;
     this.ruleThickness = ruleThickness;
 
-    // The radical needs:
-    // Vinculum above radicand with 2px clearance:
     const clearance = 2;
     this.height = radicand.height + clearance + ruleThickness;
     this.depth = radicand.depth;
     this.totalHeight = this.height + this.depth;
 
-    // Radical symbol width on left:
-    // hook (2px) + slash (2-3px) + clearance (1px) = 5-6px
     const radicalSymbolWidth = 5;
     const indexWidth = indexBox ? Math.max(indexBox.width - 2, 0) : 0;
     this.width = indexWidth + radicalSymbolWidth + radicand.width + 2;
@@ -268,24 +369,19 @@ export class RadicalBox implements Box {
 
     let radLeft = x;
     if (this.indexBox) {
-      // Place index high in the crook
       const indexY = y - this.radicand.height;
       this.indexBox.render(target, x, indexY);
       radLeft = x + Math.max(this.indexBox.width - 2, 0);
     }
 
-    // Radical hook and diagonal
-    // Hook: small downward tick at middle left
     const hookY = Math.floor(botY - radH * 0.4);
     target.fillRect(radLeft, hookY, 1, 2, true);
     target.fillRect(radLeft + 1, hookY + 1, 1, 2, true);
 
-    // Bottom crook
     const crookX = radLeft + 2;
     const crookY = botY;
     target.fillRect(crookX, crookY - 1, 1, 1, true);
 
-    // Diagonal line from crook (crookX, crookY) up to top (topX, topY)
     const topX = radLeft + 4;
     const dy = crookY - topY;
     for (let sy = 0; sy < dy; sy++) {
@@ -295,12 +391,10 @@ export class RadicalBox implements Box {
       target.setPixel(curX, curY, true);
     }
 
-    // Vinculum (top horizontal bar over radicand)
     const vinculumStartX = topX;
     const vinculumW = this.radicand.width + 3;
     target.fillRect(vinculumStartX, topY, vinculumW, this.ruleThickness, true);
 
-    // Render radicand under vinculum
     const radicandX = topX + 1;
     this.radicand.render(target, radicandX, y);
   }
@@ -322,15 +416,11 @@ export class FractionBox implements Box {
     this.mathAxis = mathAxis;
     this.ruleThickness = ruleThickness;
 
-    const pad = 2; // padding past max width
+    const pad = 2;
     const contentW = Math.max(num.width, den.width);
     this.width = contentW + pad * 2;
 
-    const gap = 2; // gap between bar and content
-    // Numerator is placed above bar
-    // Bar is at Y = -mathAxis
-    // Num bottom sits at (-mathAxis - gap)
-    // Den top sits at (-mathAxis + ruleThickness + gap)
+    const gap = 2;
     this.height = mathAxis + gap + num.height + num.depth;
     this.depth = Math.max(0, den.height + den.depth + gap + ruleThickness - mathAxis);
     this.totalHeight = this.height + this.depth;
@@ -338,15 +428,12 @@ export class FractionBox implements Box {
 
   public render(target: PixelTarget, x: number, y: number): void {
     const barY = y - this.mathAxis;
-    // Draw 1px fraction bar
     target.fillRect(x, barY, this.width, this.ruleThickness, true);
 
-    // Numerator centered horizontally
     const numX = x + Math.floor((this.width - this.num.width) / 2);
     const numY = barY - 2 - this.num.depth;
     this.num.render(target, numX, numY);
 
-    // Denominator centered horizontally
     const denX = x + Math.floor((this.width - this.den.width) / 2);
     const denY = barY + this.ruleThickness + 2 + this.den.height;
     this.den.render(target, denX, denY);
@@ -358,7 +445,7 @@ export class ScriptsBox implements Box {
   public height: number;
   public depth: number;
   public totalHeight: number;
-  private base: Box;
+  public base: Box;
   private sup?: Box;
   private sub?: Box;
   private displayLimits: boolean;
@@ -378,7 +465,6 @@ export class ScriptsBox implements Box {
     this.metrics = metrics;
 
     if (displayLimits) {
-      // Limits placed directly above and below base (e.g. \sum_{n=1}^\infty)
       const supW = sup ? sup.width : 0;
       const subW = sub ? sub.width : 0;
       this.width = Math.max(base.width, supW, subW);
@@ -395,8 +481,15 @@ export class ScriptsBox implements Box {
       }
       this.depth = d;
       this.totalHeight = this.height + this.depth;
+    } else if (base instanceof IntegralBox) {
+      // Limits placed at hooks of integral
+      const supW = sup ? sup.width : 0;
+      const subW = sub ? sub.width : 0;
+      this.width = base.width + Math.max(supW, subW) + 1;
+      this.height = base.height;
+      this.depth = base.depth;
+      this.totalHeight = base.height + base.depth;
     } else {
-      // Inline scripts (to the right of base)
       const scriptW = Math.max(sup ? sup.width : 0, sub ? sub.width : 0);
       this.width = base.width + (scriptW > 0 ? scriptW + 1 : 0);
 
@@ -432,6 +525,20 @@ export class ScriptsBox implements Box {
       if (this.sub) {
         const subX = x + Math.floor((this.width - this.sub.width) / 2);
         const subY = y + this.base.depth + 2 + this.sub.height;
+        this.sub.render(target, subX, subY);
+      }
+    } else if (this.base instanceof IntegralBox) {
+      this.base.render(target, x, y);
+
+      if (this.sup) {
+        const supX = x + 7;
+        const supY = y - this.base.height + 4;
+        this.sup.render(target, supX, supY);
+      }
+
+      if (this.sub) {
+        const subX = x + 5;
+        const subY = y + this.base.depth - 2;
         this.sub.render(target, subX, subY);
       }
     } else {
@@ -490,7 +597,6 @@ export class MatrixBox implements Box {
       }
     }
 
-    // Cases environment column spacing
     if (type === 'cases') {
       this.colSpacing = 8;
     }
@@ -507,7 +613,6 @@ export class MatrixBox implements Box {
       if (r < numRows - 1) totalTableH += this.rowSpacing;
     }
 
-    // Baseline centered at table math axis
     const halfH = Math.floor(totalTableH / 2);
     this.height = halfH + metrics.mathAxis;
     this.depth = Math.max(0, totalTableH - this.height);
@@ -560,9 +665,7 @@ export class MatrixBox implements Box {
       let colX = curX;
       for (let c = 0; c < row.length; c++) {
         const cell = row[c];
-        // Center or left-align cells: left-align for cases, center for matrices
-        const cellX = colX;
-        cell.render(target, cellX, rowBaseline);
+        cell.render(target, colX, rowBaseline);
         colX += this.colWidths[c] + this.colSpacing;
       }
 
@@ -589,7 +692,7 @@ export class AccentBox implements Box {
     this.accent = accent;
     this.width = base.width;
     this.depth = base.depth;
-    this.height = base.height + 2; // 2px for accent
+    this.height = base.height + 2;
     this.totalHeight = this.height + this.depth;
   }
 
@@ -599,7 +702,6 @@ export class AccentBox implements Box {
     const midX = x + Math.floor(this.width / 2);
 
     if (this.accent === 'vec') {
-      // Small right arrow: 4px long
       const left = midX - 2;
       target.fillRect(left, accentY, 4, 1, true);
       target.setPixel(left + 3, accentY - 1, true);
@@ -622,6 +724,22 @@ export class AccentBox implements Box {
   }
 }
 
+function isBinaryOrRelational(node: MathNode): boolean {
+  if (node.type === 'symbol') {
+    return node.symbolType === 'bin' || node.symbolType === 'rel';
+  }
+  if (node.type === 'char') {
+    return ['+', '-', '*', '=', '<', '>'].includes(node.value);
+  }
+  return false;
+}
+
+function isFunctionOrFunctionScript(node: MathNode): boolean {
+  if (node.type === 'function') return true;
+  if (node.type === 'scripts' && node.base.type === 'function') return true;
+  return false;
+}
+
 // Layout Engine
 export class LayoutEngine {
   private preset: FontPreset;
@@ -634,29 +752,30 @@ export class LayoutEngine {
     return this.layoutNode(node, this.preset.mainFont);
   }
 
-  private layoutNode(node: MathNode, font: BitmapFont): Box {
+  public layoutNode(node: MathNode, font: BitmapFont, targetH?: number, targetD?: number): Box {
     switch (node.type) {
       case 'char': {
         const glyph = font.getGlyph(node.value);
         if (glyph) {
           return new GlyphBox(glyph);
         }
-        // Fallback space
         return new SpaceBox(font.metrics.capHeight / 2);
       }
 
       case 'symbol': {
+        if (node.name === 'int' || node.name === 'iint' || node.name === 'oint') {
+          return new IntegralBox(targetH || 14, targetD || 6);
+        }
         const glyph = font.getGlyph(node.name);
         if (glyph) {
           return new GlyphBox(glyph);
         }
-        // Fallback for unmapped symbols
         const fallback = font.getGlyph('?');
         return fallback ? new GlyphBox(fallback) : new SpaceBox(4);
       }
 
       case 'function': {
-        // Functions like \sin, \cos, \ln render as a sequence of roman glyphs with function spacing
+        // Tight sequence of roman letters without trailing operator spacing
         const chars = node.name.split('');
         const children: ChildItem[] = [];
         let curX = 0;
@@ -668,13 +787,10 @@ export class LayoutEngine {
             curX += b.width + font.metrics.charSpacing;
           }
         }
-        // Function operator spacing on right (e.g. \sin x has gap before x)
-        curX += font.metrics.operatorSpacing;
-        return new HBox(children, curX);
+        return new HBox(children, curX > 0 ? curX - font.metrics.charSpacing : 0);
       }
 
       case 'fraction': {
-        // Lay out numerator and denominator with slightly smaller font or main font
         const numBox = this.layoutNode(node.numerator, font);
         const denBox = this.layoutNode(node.denominator, font);
         return new FractionBox(numBox, denBox, font.metrics.mathAxis, font.metrics.ruleThickness);
@@ -690,7 +806,13 @@ export class LayoutEngine {
       }
 
       case 'scripts': {
-        const baseBox = this.layoutNode(node.base, font);
+        let baseBox: Box;
+        if (node.base.type === 'symbol' && (node.base.name === 'int' || node.base.name === 'iint' || node.base.name === 'oint')) {
+          baseBox = new IntegralBox(targetH || 14, targetD || 6);
+        } else {
+          baseBox = this.layoutNode(node.base, font);
+        }
+
         const subBox = node.sub ? this.layoutNode(node.sub, this.preset.subFont) : undefined;
         const supBox = node.sup ? this.layoutNode(node.sup, this.preset.subFont) : undefined;
         return new ScriptsBox(baseBox, supBox, subBox, !!node.displayLimits, font.metrics);
@@ -741,54 +863,66 @@ export class LayoutEngine {
 
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
-      const box = this.layoutNode(child, font);
 
-      // Determine spacing before this element
-      let preSpacing = 0;
-      if (child.type === 'symbol') {
-        if (child.symbolType === 'bin') {
-          preSpacing = font.metrics.operatorSpacing;
-        } else if (child.symbolType === 'rel') {
-          preSpacing = font.metrics.operatorSpacing + 1;
+      // If child is integral or integral with scripts, look ahead for integrand height
+      let targetH: number | undefined = undefined;
+      let targetD: number | undefined = undefined;
+      const isInt =
+        (child.type === 'symbol' && child.name === 'int') ||
+        (child.type === 'scripts' && child.base.type === 'symbol' && child.base.name === 'int');
+
+      if (isInt) {
+        let maxH = 0;
+        let maxD = 0;
+        for (let j = i + 1; j < children.length; j++) {
+          const next = children[j];
+          if (isBinaryOrRelational(next)) break; // stop at = or +
+          const aheadBox = this.layoutNode(next, font);
+          if (aheadBox.height > maxH) maxH = aheadBox.height;
+          if (aheadBox.depth > maxD) maxD = aheadBox.depth;
         }
-      } else if (child.type === 'char') {
-        if (['+', '-', '*'].includes(child.value)) {
-          preSpacing = font.metrics.operatorSpacing;
-        } else if (['=', '<', '>'].includes(child.value)) {
-          preSpacing = font.metrics.operatorSpacing + 1;
+        if (maxH > 10 || maxD > 4) {
+          targetH = maxH + 3;
+          targetD = maxD + 3;
         }
       }
 
-      // Check if previous element was binary or relational operator
-      let postSpacing = 0;
+      const box = this.layoutNode(child, font, targetH, targetD);
+
+      // Determine spacing
+      let spacing = 0;
       if (i > 0) {
         const prev = children[i - 1];
-        if (prev.type === 'symbol') {
-          if (prev.symbolType === 'bin') {
-            postSpacing = font.metrics.operatorSpacing;
-          } else if (prev.symbolType === 'rel') {
-            postSpacing = font.metrics.operatorSpacing + 1;
-          }
-        } else if (prev.type === 'char') {
-          if (['+', '-', '*'].includes(prev.value)) {
-            postSpacing = font.metrics.operatorSpacing;
-          } else if (['=', '<', '>'].includes(prev.value)) {
-            postSpacing = font.metrics.operatorSpacing + 1;
-          }
+
+        // 1. Function spacing: after \sin or \sin^2 before argument
+        if (isFunctionOrFunctionScript(prev) && !isBinaryOrRelational(child)) {
+          spacing = font.metrics.operatorSpacing + 1; // 3px
+        }
+        // 2. Binary operator spacing: e.g. a + b
+        else if (isBinaryOrRelational(child) || isBinaryOrRelational(prev)) {
+          const isRel =
+            (child.type === 'symbol' && child.symbolType === 'rel') ||
+            (prev.type === 'symbol' && prev.symbolType === 'rel') ||
+            (child.type === 'char' && ['=', '<', '>'].includes(child.value)) ||
+            (prev.type === 'char' && ['=', '<', '>'].includes(prev.value));
+          spacing = isRel ? font.metrics.operatorSpacing + 1 : font.metrics.operatorSpacing;
+        }
+        // 3. Integral spacing: space after \int or \int_a^b
+        else if (
+          (prev.type === 'symbol' && prev.name === 'int') ||
+          (prev.type === 'scripts' && prev.base.type === 'symbol' && prev.base.name === 'int')
+        ) {
+          spacing = 2;
+        }
+        // 4. Default spacing between ordinary consecutive elements: guaranteed >= 1px!
+        else {
+          spacing = font.metrics.charSpacing;
         }
       }
 
-      curX += Math.max(preSpacing, postSpacing);
+      curX += spacing;
       items.push({ box, xOffset: curX, yOffset: 0 });
       curX += box.width;
-
-      // Add standard char spacing between ordinary items
-      if (i < children.length - 1) {
-        const next = children[i + 1];
-        if (child.type === 'char' && next.type === 'char') {
-          curX += font.metrics.charSpacing;
-        }
-      }
     }
 
     return new HBox(items, curX);
