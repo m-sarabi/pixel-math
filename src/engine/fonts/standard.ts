@@ -701,7 +701,7 @@ const standardGlyphs: Record<string, GlyphData> = {
     "..#..",
     ".....",
   ]),
-  '-': makeGlyph(5, 0, [
+  '-': makeGlyph(4, 0, [
     "#####",
   ]),
   '=': makeGlyph(5, 1, [
@@ -1675,12 +1675,12 @@ const subStandardGlyphs: Record<string, GlyphData> = {
     ".#.#.",
   ]),
   'X': g6([
-    "#..#",
-    ".##.",
-    ".##.",
-    ".##.",
-    "#..#",
-    "#..#",
+    "#...#",
+    ".#.#.",
+    "..#..",
+    ".#.#.",
+    "#...#",
+    "#...#",
   ]),
   'Y': g6([
     "#...#",
@@ -1870,10 +1870,10 @@ const subStandardGlyphs: Record<string, GlyphData> = {
     ".#.#.",
   ]),
   'x': gsx([
-    "#..#",
-    ".##.",
-    ".##.",
-    "#..#",
+    "#.#",
+    ".#.",
+    ".#.",
+    "#.#",
   ]),
   'y': gsxd([
     "#..#",
