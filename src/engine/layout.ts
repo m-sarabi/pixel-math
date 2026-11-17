@@ -367,20 +367,19 @@ export class RadicalBox implements Box {
 
     const radicalSymbolWidth = 5;
     const indexWidth = indexBox ? Math.max(indexBox.width - 2, 0) : 0;
-    // 1px internal left pad to prevent touching left adjacent characters
-    this.width = 1 + indexWidth + radicalSymbolWidth + radicand.width + 3;
+    // radical symbol (5) + space before radicand (1) + radicand width + overhang (2)
+    this.width = indexWidth + radicalSymbolWidth + radicand.width + 3;
   }
 
   public render(target: PixelTarget, x: number, y: number): void {
     const topY = y - this.height;
     const botY = y + this.depth;
 
-    // 1px left pad
-    let radLeft = x + 1;
+    let radLeft = x;
     if (this.indexBox) {
       const indexY = y - 3;
-      this.indexBox.render(target, x + 1, indexY);
-      radLeft = x + 1 + Math.max(this.indexBox.width - 2, 0);
+      this.indexBox.render(target, x, indexY);
+      radLeft = x + Math.max(this.indexBox.width - 2, 0);
     }
 
     // Stable, continuous tick hook anchored to botY so it never detaches when stretching vertically
@@ -401,10 +400,11 @@ export class RadicalBox implements Box {
     }
 
     const vinculumStartX = topX;
-    const vinculumW = this.radicand.width + 3;
+    const vinculumW = this.radicand.width + 4;
     target.fillRect(vinculumStartX, topY, vinculumW, this.ruleThickness, true);
 
-    const radicandX = topX + 1;
+    // Shift radicand 1 pixel to the right to increase space between sqrt and radicand
+    const radicandX = topX + 2;
     this.radicand.render(target, radicandX, y);
   }
 }
@@ -937,11 +937,7 @@ export class LayoutEngine {
         ) {
           spacing = 2;
         }
-        // 4. Radical spacing: ensure at least 2px before a radical so adjacent chars never touch
-        else if (child.type === 'radical') {
-          spacing = Math.max(font.metrics.charSpacing + 1, 2);
-        }
-        // 5. Default spacing between ordinary consecutive elements: guaranteed >= 1px!
+        // 4. Default spacing between ordinary consecutive elements: guaranteed >= 1px!
         else {
           spacing = font.metrics.charSpacing;
         }

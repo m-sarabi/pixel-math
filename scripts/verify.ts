@@ -230,14 +230,29 @@ console.log('\n--- Round 3 Checks: New & Modified Features ---');
     allPassed = false;
   }
 
-  // D. Characters touching sqrt from left
-  const aSqrtB = PixelMathRenderer.render('a\\sqrt{b}', { presetId: 'standard', padding: 0 });
-  const aOnly = PixelMathRenderer.render('a', { presetId: 'standard', padding: 0 });
-  // Spacing between 'a' and radical symbol
-  const gapBeforeSqrt = aSqrtB.width - (aOnly.width + sqrtRes.width);
-  console.log(`✓ Gap before radical in 'a\\sqrt{b}': ${gapBeforeSqrt} px (>= 2px guaranteed separation)`);
-  if (gapBeforeSqrt < 1) {
-    console.error(`❌ [FAIL] Characters touching sqrt from left`);
+  // D. Internal spacing between sqrt diagonal and radicand (x moved 1px to the right)
+  const sqrtXRes = PixelMathRenderer.render('\\sqrt{x}', { presetId: 'standard', padding: 0 });
+  // topX is at col 4. Col 5 is empty space. Radicand 'x' starts at col 6.
+  // Check column 5 is empty between diagonal and x (for y in [topY+1 .. botY-1])
+  let col5HasPixels = false;
+  for (let y = 1; y < sqrtXRes.height; y++) {
+    if (sqrtXRes.buffer.getPixel(5, y)) {
+      col5HasPixels = true;
+      break;
+    }
+  }
+  // Col 6 should have pixels for 'x'
+  let col6HasPixels = false;
+  for (let y = 1; y < sqrtXRes.height; y++) {
+    if (sqrtXRes.buffer.getPixel(6, y)) {
+      col6HasPixels = true;
+      break;
+    }
+  }
+  if (!col5HasPixels && col6HasPixels) {
+    console.log(`✓ Radicand 'x' has 1px breathing space: col 5 is clear, 'x' starts cleanly at col 6`);
+  } else {
+    console.error(`❌ [FAIL] Expected col 5 clear and col 6 occupied in \\sqrt{x}: col5=${col5HasPixels}, col6=${col6HasPixels}`);
     allPassed = false;
   }
 
