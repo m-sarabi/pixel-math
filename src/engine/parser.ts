@@ -360,8 +360,9 @@ export class Parser {
           rows.push(currentRow);
         }
 
-        const validTypes = ['pmatrix', 'bmatrix', 'matrix', 'vmatrix', 'cases'];
-        const mType = validTypes.includes(envName) ? (envName as MatrixNode['matrixType']) : 'matrix';
+        const validTypes = ['pmatrix', 'bmatrix', 'matrix', 'vmatrix', 'cases', 'align', 'aligned', 'align*'];
+        const cleanEnv = envName.replace('*', '') as MatrixNode['matrixType'];
+        const mType = validTypes.includes(envName) ? cleanEnv : 'matrix';
         return { type: 'matrix', matrixType: mType, rows };
       }
 

@@ -29,16 +29,50 @@ interface AppState {
   activeTab: string;
 }
 
+const STORAGE_KEY = 'pixelmath_user_prefs_v1';
+
+function loadPersistedState(): Partial<AppState> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.warn('Failed to load settings from localStorage:', e);
+  }
+  return {};
+}
+
+const savedState = loadPersistedState();
+
 const state: AppState = {
-  latex: '\\sin^2 x + \\cos^2 x = 1',
-  padding: 2,
-  fgHex: '#ffffff',
-  bgHex: null, // transparent
-  zoom: 8,
-  showGrid: true,
-  viewportBg: 'checkerboard',
-  activeTab: 'structures',
+  latex: typeof savedState.latex === 'string' ? savedState.latex : '\\sin^2 x + \\cos^2 x = 1',
+  padding: typeof savedState.padding === 'number' ? savedState.padding : 2,
+  fgHex: typeof savedState.fgHex === 'string' ? savedState.fgHex : '#ffffff',
+  bgHex: savedState.bgHex !== undefined ? savedState.bgHex : null,
+  zoom: typeof savedState.zoom === 'number' ? savedState.zoom : 8,
+  showGrid: typeof savedState.showGrid === 'boolean' ? savedState.showGrid : true,
+  viewportBg: ['checkerboard', 'solid-black', 'solid-white'].includes(savedState.viewportBg as any)
+    ? (savedState.viewportBg as any)
+    : 'checkerboard',
+  activeTab: typeof savedState.activeTab === 'string' ? savedState.activeTab : 'structures',
 };
+
+function persistState(): void {
+  try {
+    const toSave: Partial<AppState> = {
+      latex: state.latex,
+      padding: state.padding,
+      fgHex: state.fgHex,
+      bgHex: state.bgHex,
+      zoom: state.zoom,
+      showGrid: state.showGrid,
+      viewportBg: state.viewportBg,
+      activeTab: state.activeTab,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch (e) {
+    console.warn('Failed to persist settings:', e);
+  }
+}
 
 let currentResult: RenderResult | null = null;
 
@@ -199,7 +233,7 @@ app.innerHTML = `
       </div>
 
       <!-- Viewport Stage -->
-      <div class="canvas-viewport checkerboard" id="canvasViewport">
+      <div class="canvas-viewport ${state.viewportBg}" id="canvasViewport">
         <div class="canvas-stage" id="canvasStage">
           <canvas id="pixelCanvas"></canvas>
           <svg id="gridOverlay" class="pixel-grid-overlay visible"></svg>
@@ -318,6 +352,7 @@ function insertAtCursor(text: string): void {
   formulaInput.setSelectionRange(newPos, newPos);
   formulaInput.focus();
   state.latex = formulaInput.value;
+  persistState();
   updateRender();
 }
 
@@ -379,8 +414,8 @@ function applyZoom(): void {
   canvasStage.style.width = `${displayW}px`;
   canvasStage.style.height = `${displayH}px`;
 
-  // Draw 1px pixel grid if enabled and zoom >= 4
-  if (state.showGrid && z >= 4) {
+  // Draw 1px pixel grid if enabled and zoom >= 2
+  if (state.showGrid && z >= 2) {
     gridOverlay.setAttribute('viewBox', `0 0 ${w} ${h}`);
     gridOverlay.style.width = `${displayW}px`;
     gridOverlay.style.height = `${displayH}px`;
@@ -395,7 +430,7 @@ function applyZoom(): void {
     }
 
     gridOverlay.innerHTML = `
-      <path d="${gridPaths}" stroke="rgba(255, 255, 255, 0.12)" stroke-width="${1 / z}" vector-effect="non-scaling-stroke" />
+      <path d="${gridPaths}" stroke="rgba(0, 240, 255, 0.45)" stroke-width="1" vector-effect="non-scaling-stroke" />
     `;
   } else {
     gridOverlay.classList.remove('visible');
@@ -406,6 +441,7 @@ function applyZoom(): void {
 // Event Listeners
 formulaInput.addEventListener('input', () => {
   state.latex = formulaInput.value;
+  persistState();
   updateRender();
 });
 
@@ -413,18 +449,59 @@ templateSelect.addEventListener('change', () => {
   if (templateSelect.value) {
     formulaInput.value = templateSelect.value;
     state.latex = templateSelect.value;
+    persistState();
     updateRender();
     templateSelect.value = '';
   }
 });
 
-// Palette tabs
+// Click-draggable Palette tabs
+let isPaletteDragging = false;
+let paletteStartX = 0;
+let paletteScrollLeft = 0;
+let paletteDraggedDistance = 0;
+
+paletteTabs.addEventListener('mousedown', (e) => {
+  isPaletteDragging = true;
+  paletteDraggedDistance = 0;
+  paletteStartX = e.pageX - paletteTabs.offsetLeft;
+  paletteScrollLeft = paletteTabs.scrollLeft;
+  paletteTabs.classList.add('dragging');
+});
+
+window.addEventListener('mouseup', () => {
+  if (isPaletteDragging) {
+    isPaletteDragging = false;
+    paletteTabs.classList.remove('dragging');
+  }
+});
+
+paletteTabs.addEventListener('mouseleave', () => {
+  if (isPaletteDragging) {
+    isPaletteDragging = false;
+    paletteTabs.classList.remove('dragging');
+  }
+});
+
+paletteTabs.addEventListener('mousemove', (e) => {
+  if (!isPaletteDragging) return;
+  e.preventDefault();
+  const x = e.pageX - paletteTabs.offsetLeft;
+  const walk = (x - paletteStartX);
+  paletteDraggedDistance += Math.abs(walk);
+  paletteTabs.scrollLeft = paletteScrollLeft - walk;
+});
+
 paletteTabs.addEventListener('click', (e) => {
+  if (paletteDraggedDistance > 5) {
+    return;
+  }
   const target = (e.target as HTMLElement).closest('.tab-btn') as HTMLButtonElement | null;
   if (target && target.dataset.tab) {
     state.activeTab = target.dataset.tab;
     paletteTabs.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     target.classList.add('active');
+    persistState();
     renderPaletteGrid();
   }
 });
@@ -443,6 +520,7 @@ paddingGroup.addEventListener('click', (e) => {
     state.padding = parseInt(target.dataset.pad, 10);
     paddingGroup.querySelectorAll('.preset-pill').forEach(btn => btn.classList.remove('active'));
     target.classList.add('active');
+    persistState();
     updateRender();
   }
 });
@@ -455,6 +533,7 @@ fgSwatches.addEventListener('click', (e) => {
     fgSwatches.querySelectorAll('.color-swatch').forEach(btn => btn.classList.remove('active'));
     target.classList.add('active');
     fgCustom.value = state.fgHex;
+    persistState();
     updateRender();
   }
 });
@@ -462,6 +541,7 @@ fgSwatches.addEventListener('click', (e) => {
 fgCustom.addEventListener('input', () => {
   state.fgHex = fgCustom.value;
   fgSwatches.querySelectorAll('.color-swatch').forEach(btn => btn.classList.remove('active'));
+  persistState();
   updateRender();
 });
 
@@ -473,6 +553,7 @@ bgGroup.addEventListener('click', (e) => {
     state.bgHex = val === 'null' ? null : val;
     bgGroup.querySelectorAll('.preset-pill').forEach(btn => btn.classList.remove('active'));
     target.classList.add('active');
+    persistState();
     updateRender();
   }
 });
@@ -481,6 +562,7 @@ bgGroup.addEventListener('click', (e) => {
 zoomInBtn.addEventListener('click', () => {
   if (state.zoom < 20) {
     state.zoom = Math.min(20, state.zoom + 2);
+    persistState();
     applyZoom();
   }
 });
@@ -488,23 +570,27 @@ zoomInBtn.addEventListener('click', () => {
 zoomOutBtn.addEventListener('click', () => {
   if (state.zoom > 4) {
     state.zoom = Math.max(4, state.zoom - 2);
+    persistState();
     applyZoom();
   }
 });
 
 zoomSlider.addEventListener('input', () => {
   state.zoom = parseInt(zoomSlider.value, 10);
+  persistState();
   applyZoom();
 });
 
 resetZoomBtn.addEventListener('click', () => {
   state.zoom = 8;
+  persistState();
   applyZoom();
 });
 
 toggleGridBtn.addEventListener('click', () => {
   state.showGrid = !state.showGrid;
   toggleGridBtn.classList.toggle('active', state.showGrid);
+  persistState();
   applyZoom();
 });
 
@@ -517,6 +603,7 @@ toggleCheckerBtn.addEventListener('click', () => {
 
   canvasViewport.classList.remove('checkerboard', 'solid-black', 'solid-white');
   canvasViewport.classList.add(state.viewportBg);
+  persistState();
 });
 
 export function getDownloadFilename(formula: string): string {

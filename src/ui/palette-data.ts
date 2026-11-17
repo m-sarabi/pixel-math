@@ -67,6 +67,11 @@ export const TEMPLATES: { name: string; latex: string; desc: string }[] = [
     desc: 'Quantum state wave equation',
     latex: 'i\\hbar \\frac{\\partial}{\\partial t}\\Psi = \\hat{H}\\Psi',
   },
+  {
+    name: 'Aligned System',
+    desc: 'Multi-line aligned equations',
+    latex: '\\begin{align} f(x) &= 2x + 1 \\\\ g(x) &= x^2 - 4 \\end{align}',
+  },
 ];
 
 export const PALETTE_TABS: PaletteTab[] = [
@@ -89,6 +94,7 @@ export const PALETTE_TABS: PaletteTab[] = [
       { label: '{ }', insert: '\\left\\{ x \\right\\}', desc: 'Symmetric Braces' },
       { label: '|x|', insert: '\\left| x \\right|', desc: 'Absolute Value' },
       { label: 'cases', insert: '\\begin{cases} 1 & x \\geq 0 \\\\ 0 & x < 0 \\end{cases}', desc: 'Cases' },
+      { label: 'align', insert: '\\begin{align} a &= b + c \\\\ d &= e \\end{align}', desc: 'Aligned Equations' },
       { label: 'matrix', insert: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', desc: '2×2 Matrix' },
       { label: 'vec', insert: '\\vec{v}', desc: 'Vector Accent' },
       { label: 'hat', insert: '\\hat{x}', desc: 'Hat Accent' },

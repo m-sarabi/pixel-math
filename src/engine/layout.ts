@@ -134,12 +134,12 @@ function drawCurlyBrace(
     return;
   }
 
-  // Top hook: cols 2, 3 at row 0; col 1 at row 1
+  // Top hook: cols 2, 3 at row 0; col 2 at row 1
   fillH(2, y, 2);
-  setP(1, y + 1);
+  setP(2, y + 1);
 
-  // Bottom hook: col 1 at row h-2; cols 2, 3 at row h-1
-  setP(1, y + h - 2);
+  // Bottom hook: col 2 at row h-2; cols 2, 3 at row h-1
+  setP(2, y + h - 2);
   fillH(2, y + h - 1, 2);
 
   const midY = y + Math.floor(h / 2);
@@ -355,8 +355,8 @@ export class RadicalBox implements Box {
     const clearance = 2;
     let h = radicand.height + clearance + ruleThickness;
     if (indexBox) {
-      // Ensure canvas height accommodates index tucked above hook (indexY = y - 3)
-      const indexTop = 3 + indexBox.height + 1;
+      // Ensure canvas height accommodates index tucked above hook (indexY = y - 4)
+      const indexTop = 4 + indexBox.height + 1;
       if (indexTop > h) {
         h = indexTop;
       }
@@ -377,7 +377,7 @@ export class RadicalBox implements Box {
 
     let radLeft = x;
     if (this.indexBox) {
-      const indexY = y - 3;
+      const indexY = y - 4;
       this.indexBox.render(target, x, indexY);
       radLeft = x + Math.max(this.indexBox.width - 2, 0);
     }
@@ -594,13 +594,18 @@ export class MatrixBox implements Box {
   private rowSpacing = 4;
   private leftDelim?: DelimiterBox;
   private rightDelim?: DelimiterBox;
+  private totalTableH: number;
+  private mathAxis: number;
+  private matrixType: string;
 
   constructor(
-    type: 'pmatrix' | 'bmatrix' | 'matrix' | 'vmatrix' | 'cases',
+    type: 'pmatrix' | 'bmatrix' | 'matrix' | 'vmatrix' | 'cases' | 'align' | 'aligned',
     cells: Box[][],
     metrics: BitmapFont['metrics']
   ) {
+    this.matrixType = type;
     this.cells = cells;
+    this.mathAxis = metrics.mathAxis;
     const numRows = cells.length;
     let numCols = 0;
     for (const row of cells) {
@@ -622,12 +627,18 @@ export class MatrixBox implements Box {
 
     if (type === 'cases') {
       this.colSpacing = 8;
+    } else if (type === 'align' || type === 'aligned') {
+      this.colSpacing = 2; // tight alignment spacing
+      this.rowSpacing = 5;
     }
 
     let innerW = 0;
     for (let c = 0; c < numCols; c++) {
       innerW += this.colWidths[c];
-      if (c < numCols - 1) innerW += this.colSpacing;
+      if (c < numCols - 1) {
+        const spacing = (type === 'align' || type === 'aligned') && c % 2 === 1 ? 10 : this.colSpacing;
+        innerW += spacing;
+      }
     }
 
     let totalTableH = 0;
@@ -635,11 +646,11 @@ export class MatrixBox implements Box {
       totalTableH += this.rowHeights[r] + this.rowDepths[r];
       if (r < numRows - 1) totalTableH += this.rowSpacing;
     }
+    this.totalTableH = totalTableH;
 
     const halfH = Math.floor(totalTableH / 2);
     this.height = halfH + metrics.mathAxis;
     this.depth = Math.max(0, totalTableH - this.height);
-    this.totalHeight = this.height + this.depth;
 
     let leftD = '.';
     let rightD = '.';
@@ -659,10 +670,15 @@ export class MatrixBox implements Box {
 
     if (leftD !== '.') {
       this.leftDelim = new DelimiterBox(leftD, this.height, this.depth, metrics.ruleThickness);
+      if (this.leftDelim.height > this.height) this.height = this.leftDelim.height;
+      if (this.leftDelim.depth > this.depth) this.depth = this.leftDelim.depth;
     }
     if (rightD !== '.') {
       this.rightDelim = new DelimiterBox(rightD, this.height, this.depth, metrics.ruleThickness);
+      if (this.rightDelim.height > this.height) this.height = this.rightDelim.height;
+      if (this.rightDelim.depth > this.depth) this.depth = this.rightDelim.depth;
     }
+    this.totalHeight = this.height + this.depth;
 
     const delimPad = 2;
     this.width =
@@ -678,7 +694,7 @@ export class MatrixBox implements Box {
       curX += this.leftDelim.width + 2;
     }
 
-    const tableTop = y - this.height;
+    const tableTop = y - Math.floor(this.totalTableH / 2) - this.mathAxis;
     let rowTop = tableTop;
 
     for (let r = 0; r < this.cells.length; r++) {
@@ -688,8 +704,15 @@ export class MatrixBox implements Box {
       let colX = curX;
       for (let c = 0; c < row.length; c++) {
         const cell = row[c];
-        cell.render(target, colX, rowBaseline);
-        colX += this.colWidths[c] + this.colSpacing;
+        // In align environments: even columns (c=0, 2...) are right-aligned, odd columns (c=1, 3...) are left-aligned
+        let cellX = colX;
+        if ((this.matrixType === 'align' || this.matrixType === 'aligned') && c % 2 === 0) {
+          cellX = colX + (this.colWidths[c] - cell.width);
+        }
+        cell.render(target, cellX, rowBaseline);
+
+        const spacing = (this.matrixType === 'align' || this.matrixType === 'aligned') && c % 2 === 1 ? 10 : this.colSpacing;
+        colX += this.colWidths[c] + spacing;
       }
 
       rowTop += this.rowHeights[r] + this.rowDepths[r] + this.rowSpacing;

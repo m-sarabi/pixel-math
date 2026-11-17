@@ -67,7 +67,7 @@ export interface DelimitedNode extends BaseNode {
 
 export interface MatrixNode extends BaseNode {
   type: 'matrix';
-  matrixType: 'pmatrix' | 'bmatrix' | 'matrix' | 'vmatrix' | 'cases';
+  matrixType: 'pmatrix' | 'bmatrix' | 'matrix' | 'vmatrix' | 'cases' | 'align' | 'aligned';
   rows: MathNode[][];
 }
 

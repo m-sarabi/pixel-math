@@ -271,6 +271,26 @@ console.log('\n--- Round 3 Checks: New & Modified Features ---');
     console.error(`❌ [FAIL] Spacing hierarchy incorrect: sp1=${sp1.width}, sp2=${sp2.width}, sp3=${sp3.width}`);
     allPassed = false;
   }
+
+  // G. Cases curly brace top and bottom hook intact check
+  const casesRes = PixelMathRenderer.render('\\begin{cases} 1 & x \\geq 0 \\\\ 0 & x < 0 \\end{cases}', { presetId: 'standard', padding: 0 });
+  const casesBuf = casesRes.buffer;
+  const casesTopHook = casesBuf.getPixel(2, 0) && casesBuf.getPixel(3, 0);
+  const casesBotHook = casesBuf.getPixel(2, casesRes.height - 1) && casesBuf.getPixel(3, casesRes.height - 1);
+  if (casesTopHook && casesBotHook) {
+    console.log(`✓ 'cases' curly brace has intact top hook & bottom hook (not cut off)`);
+  } else {
+    console.error(`❌ [FAIL] 'cases' curly brace missing top or bottom hook: top=${casesTopHook}, bot=${casesBotHook}`);
+    allPassed = false;
+  }
+
+  // H. Align environment check
+  const alignRes = PixelMathRenderer.render('\\begin{align} a &= b + c \\\\ d &= e \\end{align}', { presetId: 'standard', padding: 0 });
+  console.log(`✓ 'align' environment rendered cleanly: ${alignRes.width}×${alignRes.height} px`);
+  if (alignRes.width <= 0 || alignRes.height <= 0) {
+    console.error(`❌ [FAIL] 'align' environment invalid dimensions`);
+    allPassed = false;
+  }
 }
 
 console.log('\n====================================================');
