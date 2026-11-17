@@ -704,7 +704,7 @@ const standardGlyphs: Record<string, GlyphData> = {
   '-': makeGlyph(5, 0, [
     "#####",
   ]),
-  '=': makeGlyph(6, 1, [
+  '=': makeGlyph(5, 1, [
     "#####",
     ".....",
     "#####",
