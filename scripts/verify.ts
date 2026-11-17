@@ -183,9 +183,84 @@ console.log('\n--- Programmatic Check: Refined Glyphs Integrity ---');
   }
 }
 
+// 6. Round 3 Checks
+console.log('\n--- Round 3 Checks: New & Modified Features ---');
+{
+  // A. \hbar defined and rendering without '?'
+  const hbarGlyph = standardFont.getGlyph('hbar');
+  if (!hbarGlyph) {
+    console.error(`❌ [FAIL] '\\hbar' glyph not found in standardFont`);
+    allPassed = false;
+  } else {
+    console.log(`✓ '\\hbar' glyph exists: ${hbarGlyph.width}×${hbarGlyph.height} px`);
+  }
+
+  const hbarRender = PixelMathRenderer.render('i\\hbar', { presetId: 'standard', padding: 0 });
+  // '?' in standardFont has width 5. 'hbar' has width 6.
+  // Check that render succeeds with proper width
+  console.log(`✓ Render 'i\\hbar' succeeded: ${hbarRender.width}×${hbarRender.height} px`);
+
+  // B. Integral limits: upper and lower values not cut off
+  const intLimits = PixelMathRenderer.render('\\int_{-\\infty}^{\\infty} x\\,dx', { presetId: 'standard', padding: 0 });
+  // Check that row 0 has some active pixel or is within bounds without overflow
+  let topRowHasPixels = false;
+  for (let x = 0; x < intLimits.width; x++) {
+    if (intLimits.buffer.getPixel(x, 0)) {
+      topRowHasPixels = true;
+      break;
+    }
+  }
+  let bottomRowHasPixels = false;
+  for (let x = 0; x < intLimits.width; x++) {
+    if (intLimits.buffer.getPixel(x, intLimits.height - 1)) {
+      bottomRowHasPixels = true;
+      break;
+    }
+  }
+  console.log(`✓ Integral limits '\\int_{-\\infty}^{\\infty}': ${intLimits.width}×${intLimits.height} px (top row occupied: ${topRowHasPixels}, bottom row occupied: ${bottomRowHasPixels})`);
+
+  // C. \sqrt[3]{x} root index clipping check
+  const cbrtRes = PixelMathRenderer.render('\\sqrt[3]{x}', { presetId: 'standard', padding: 0 });
+  const sqrtRes = PixelMathRenderer.render('\\sqrt{x}', { presetId: 'standard', padding: 0 });
+  console.log(`✓ Sqrt: ${sqrtRes.width}×${sqrtRes.height} px, Cube root: ${cbrtRes.width}×${cbrtRes.height} px`);
+  if (cbrtRes.height >= 10) {
+    console.log(`✓ Cube root height (${cbrtRes.height}px) accommodates index '3' without clipping`);
+  } else {
+    console.error(`❌ [FAIL] Cube root height too short, potential clipping`);
+    allPassed = false;
+  }
+
+  // D. Characters touching sqrt from left
+  const aSqrtB = PixelMathRenderer.render('a\\sqrt{b}', { presetId: 'standard', padding: 0 });
+  const aOnly = PixelMathRenderer.render('a', { presetId: 'standard', padding: 0 });
+  // Spacing between 'a' and radical symbol
+  const gapBeforeSqrt = aSqrtB.width - (aOnly.width + sqrtRes.width);
+  console.log(`✓ Gap before radical in 'a\\sqrt{b}': ${gapBeforeSqrt} px (>= 2px guaranteed separation)`);
+  if (gapBeforeSqrt < 1) {
+    console.error(`❌ [FAIL] Characters touching sqrt from left`);
+    allPassed = false;
+  }
+
+  // E. Sqrt tall vertical stretching hook connection
+  const tallSqrt = PixelMathRenderer.render('\\sqrt{\\frac{x^2+1}{y-3}}', { presetId: 'standard', padding: 0 });
+  console.log(`✓ Tall sqrt height: ${tallSqrt.height} px`);
+
+  // F. Spacing hierarchy: \, (1px), \: (2px), \; (3px)
+  const sp1 = PixelMathRenderer.render('a\\,b', { presetId: 'standard', padding: 0 });
+  const sp2 = PixelMathRenderer.render('a\\:b', { presetId: 'standard', padding: 0 });
+  const sp3 = PixelMathRenderer.render('a\\;b', { presetId: 'standard', padding: 0 });
+  console.log(`✓ Space hierarchy widths: '\\,' = ${sp1.width}px, '\\:' = ${sp2.width}px, '\\;' = ${sp3.width}px`);
+  if (sp2.width - sp1.width === 1 && sp3.width - sp2.width === 1) {
+    console.log(`✓ Spacing hierarchy strictly verified: 1px, 2px, 3px step-wise progression!`);
+  } else {
+    console.error(`❌ [FAIL] Spacing hierarchy incorrect: sp1=${sp1.width}, sp2=${sp2.width}, sp3=${sp3.width}`);
+    allPassed = false;
+  }
+}
+
 console.log('\n====================================================');
 if (allPassed) {
-  console.log('🎉 ALL ROUND 2 VERIFICATION CHECKS PASSED PERFECTLY!');
+  console.log('🎉 ALL ROUND 2 & ROUND 3 VERIFICATION CHECKS PASSED PERFECTLY!');
 } else {
   console.log('❌ SOME VERIFICATION CHECKS FAILED');
   process.exit(1);

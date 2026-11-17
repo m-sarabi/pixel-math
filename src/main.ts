@@ -519,6 +519,22 @@ toggleCheckerBtn.addEventListener('click', () => {
   canvasViewport.classList.add(state.viewportBg);
 });
 
+export function getDownloadFilename(formula: string): string {
+  const simplified = formula
+    .replace(/\\[a-zA-Z]+/g, (m) => m.slice(1))
+    .replace(/[^a-zA-Z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 24) || 'formula';
+
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+
+  return `pixelmath_${simplified}_${dateStr}_${timeStr}.png`;
+}
+
 // Download 1:1 PNG
 downloadPngBtn.addEventListener('click', () => {
   if (!currentResult) return;
@@ -526,7 +542,7 @@ downloadPngBtn.addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `pixelmath_${currentResult.width}x${currentResult.height}.png`;
+  a.download = getDownloadFilename(state.latex);
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

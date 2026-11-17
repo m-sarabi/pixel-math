@@ -157,6 +157,7 @@ export const PALETTE_TABS: PaletteTab[] = [
       { label: '∂', insert: '\\partial ' },
       { label: '∇', insert: '\\nabla ' },
       { label: '∞', insert: '\\infty ' },
+      { label: 'ħ', insert: '\\hbar ', desc: 'Reduced Planck constant' },
     ],
   },
   {
@@ -202,7 +203,9 @@ export const PALETTE_TABS: PaletteTab[] = [
       { label: 'min', insert: '\\min ' },
       { label: 'det', insert: '\\det ' },
       { label: 'gcd', insert: '\\gcd ' },
-      { label: 'thinspace', insert: '\\, ' },
+      { label: '\\,', insert: '\\, ', desc: '1px thin space' },
+      { label: '\\:', insert: '\\: ', desc: '2px medium space' },
+      { label: '\\;', insert: '\\; ', desc: '3px thick space' },
       { label: 'quad', insert: '\\quad ' },
     ],
   },

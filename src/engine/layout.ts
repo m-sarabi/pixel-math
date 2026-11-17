@@ -353,30 +353,39 @@ export class RadicalBox implements Box {
     this.ruleThickness = ruleThickness;
 
     const clearance = 2;
-    this.height = radicand.height + clearance + ruleThickness;
+    let h = radicand.height + clearance + ruleThickness;
+    if (indexBox) {
+      // Ensure canvas height accommodates index tucked above hook (indexY = y - 3)
+      const indexTop = 3 + indexBox.height + 1;
+      if (indexTop > h) {
+        h = indexTop;
+      }
+    }
+    this.height = h;
     this.depth = radicand.depth;
     this.totalHeight = this.height + this.depth;
 
     const radicalSymbolWidth = 5;
     const indexWidth = indexBox ? Math.max(indexBox.width - 2, 0) : 0;
-    this.width = indexWidth + radicalSymbolWidth + radicand.width + 2;
+    // 1px internal left pad to prevent touching left adjacent characters
+    this.width = 1 + indexWidth + radicalSymbolWidth + radicand.width + 3;
   }
 
   public render(target: PixelTarget, x: number, y: number): void {
     const topY = y - this.height;
     const botY = y + this.depth;
-    const radH = botY - topY;
 
-    let radLeft = x;
+    // 1px left pad
+    let radLeft = x + 1;
     if (this.indexBox) {
-      const indexY = y - this.radicand.height;
-      this.indexBox.render(target, x, indexY);
-      radLeft = x + Math.max(this.indexBox.width - 2, 0);
+      const indexY = y - 3;
+      this.indexBox.render(target, x + 1, indexY);
+      radLeft = x + 1 + Math.max(this.indexBox.width - 2, 0);
     }
 
-    const hookY = Math.floor(botY - radH * 0.4);
-    target.fillRect(radLeft, hookY, 1, 2, true);
-    target.fillRect(radLeft + 1, hookY + 1, 1, 2, true);
+    // Stable, continuous tick hook anchored to botY so it never detaches when stretching vertically
+    target.fillRect(radLeft, botY - 3, 1, 2, true);
+    target.fillRect(radLeft + 1, botY - 2, 1, 2, true);
 
     const crookX = radLeft + 2;
     const crookY = botY;
@@ -485,10 +494,24 @@ export class ScriptsBox implements Box {
       // Limits placed at hooks of integral
       const supW = sup ? sup.width : 0;
       const subW = sub ? sub.width : 0;
-      this.width = base.width + Math.max(supW, subW) + 1;
-      this.height = base.height;
-      this.depth = base.depth;
-      this.totalHeight = base.height + base.depth;
+      this.width = base.width + Math.max(supW, subW) + 2;
+
+      let maxH = base.height;
+      if (sup) {
+        // sup renders at supY = y - base.height + 4
+        // top of sup is supY - sup.height = y - (base.height - 4 + sup.height)
+        maxH = Math.max(maxH, base.height - 4 + sup.height + 1);
+      }
+      this.height = maxH;
+
+      let maxD = base.depth;
+      if (sub) {
+        // sub renders at subY = y + base.depth - 2
+        // bottom of sub is subY + sub.depth = y + (base.depth - 2 + sub.depth)
+        maxD = Math.max(maxD, base.depth - 2 + sub.depth + 1);
+      }
+      this.depth = maxD;
+      this.totalHeight = this.height + this.depth;
     } else {
       const scriptW = Math.max(sup ? sup.width : 0, sub ? sub.width : 0);
       this.width = base.width + (scriptW > 0 ? scriptW + 1 : 0);
@@ -914,7 +937,11 @@ export class LayoutEngine {
         ) {
           spacing = 2;
         }
-        // 4. Default spacing between ordinary consecutive elements: guaranteed >= 1px!
+        // 4. Radical spacing: ensure at least 2px before a radical so adjacent chars never touch
+        else if (child.type === 'radical') {
+          spacing = Math.max(font.metrics.charSpacing + 1, 2);
+        }
+        // 5. Default spacing between ordinary consecutive elements: guaranteed >= 1px!
         else {
           spacing = font.metrics.charSpacing;
         }

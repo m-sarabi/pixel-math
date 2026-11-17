@@ -26,7 +26,7 @@ const RELATIONS = new Set([
 ]);
 
 const ORDINARY_SYMBOLS = new Set([
-  'infty', 'partial', 'nabla', 'forall', 'exists'
+  'infty', 'partial', 'nabla', 'forall', 'exists', 'hbar'
 ]);
 
 const BIG_OPS = new Set([
@@ -406,11 +406,14 @@ export class Parser {
         return { type: 'function', name: cmd, hasLimits: cmd === 'lim' || cmd === 'max' || cmd === 'min' };
       }
 
-      // Spacing
+      // Spacing hierarchy: \, (1px), \: (2px), \; (3px)
       if (cmd === ',' || cmd === 'thinspace') {
+        return { type: 'space', width: 1 };
+      }
+      if (cmd === ':' || cmd === 'medspace') {
         return { type: 'space', width: 2 };
       }
-      if (cmd === ';' || cmd === ':') {
+      if (cmd === ';' || cmd === 'thickspace') {
         return { type: 'space', width: 3 };
       }
       if (cmd === 'quad') {
