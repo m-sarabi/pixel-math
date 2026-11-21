@@ -1484,7 +1484,7 @@ const subStandardMetrics: FontMetrics = {
 
 const g6 = (pattern: string[]) => makeGlyph(6, 0, pattern);
 const g6d = (pattern: string[], d: number) => makeGlyph(6, d, pattern);
-const g5 = (pattern: string[]) => makeGlyph(6, 0, pattern);
+const g5 = (pattern: string[]) => makeGlyph(5, 0, pattern);
 // const g5d = (pattern: string[], d: number) => makeGlyph(6, d, pattern);
 const gsx = (pattern: string[]) => makeGlyph(4, 0, pattern);
 const gsxd = (pattern: string[], d: number) => makeGlyph(4, d, pattern);
