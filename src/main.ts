@@ -48,7 +48,7 @@ const state: AppState = {
   padding: typeof savedState.padding === 'number' ? savedState.padding : 2,
   fgHex: typeof savedState.fgHex === 'string' ? savedState.fgHex : '#ffffff',
   bgHex: savedState.bgHex !== undefined ? savedState.bgHex : null,
-  zoom: typeof savedState.zoom === 'number' ? savedState.zoom : 8,
+  zoom: typeof savedState.zoom === 'number' && savedState.zoom >= 1 && savedState.zoom <= 20 ? savedState.zoom : 8,
   showGrid: typeof savedState.showGrid === 'boolean' ? savedState.showGrid : true,
   viewportBg: ['checkerboard', 'solid-black', 'solid-white'].includes(savedState.viewportBg as any)
     ? (savedState.viewportBg as any)
@@ -187,10 +187,10 @@ app.innerHTML = `
       <!-- Toolbar -->
       <div class="preview-toolbar">
         <div class="toolbar-group">
-          <button type="button" id="zoomOutBtn" class="tool-btn" title="Zoom Out (4× min)">−</button>
+          <button type="button" id="zoomOutBtn" class="tool-btn" title="Zoom Out (1× min)">−</button>
           <span id="zoomReadout" class="zoom-label">${state.zoom}×</span>
           <button type="button" id="zoomInBtn" class="tool-btn" title="Zoom In (20× max)">+</button>
-          <input type="range" id="zoomSlider" min="4" max="20" step="1" value="${state.zoom}" style="width: 90px; cursor: pointer;">
+          <input type="range" id="zoomSlider" min="1" max="20" step="1" value="${state.zoom}" style="width: 90px; cursor: pointer;">
         </div>
 
         <div class="toolbar-group">
@@ -545,17 +545,21 @@ bgGroup.addEventListener('click', (e) => {
 });
 
 // Zoom controls
+const ZOOM_STAGES = [1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20];
+
 zoomInBtn.addEventListener('click', () => {
-  if (state.zoom < 20) {
-    state.zoom = Math.min(20, state.zoom + 2);
+  const next = ZOOM_STAGES.find(z => z > state.zoom);
+  if (next !== undefined) {
+    state.zoom = next;
     persistState();
     applyZoom();
   }
 });
 
 zoomOutBtn.addEventListener('click', () => {
-  if (state.zoom > 4) {
-    state.zoom = Math.max(4, state.zoom - 2);
+  const prev = [...ZOOM_STAGES].reverse().find(z => z < state.zoom);
+  if (prev !== undefined) {
+    state.zoom = prev;
     persistState();
     applyZoom();
   }

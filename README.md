@@ -31,7 +31,7 @@
 - **Cyberpunk Dark-Mode UI:**
   - Interactive formula editor with real-time feedback
   - Clickable symbol palette & equation template gallery
-  - Stepped zoom (`4×` to `20×`) with `image-rendering: pixelated`
+  - Stepped zoom (`1×` to `20×`) with `image-rendering: pixelated`
   - Toggleable `1px` pixel grid overlay and transparency checkerboard
   - Strict 1-bit color picker (GameBoy, Cyber Cyan, Amber CRT, Neon Pink, Solar Gold, Pure White, Pure Black)
   - Live dimension & active pixel telemetry
