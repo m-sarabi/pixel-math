@@ -786,6 +786,11 @@ function isFunctionOrFunctionScript(node: MathNode): boolean {
   return false;
 }
 
+function isOpeningDelimiter(node: MathNode): boolean {
+  if (node.type === 'char' && ['(', '[', '{'].includes(node.value)) return true;
+  return false;
+}
+
 // Layout Engine
 export class LayoutEngine {
   private preset: FontPreset;
@@ -815,6 +820,24 @@ export class LayoutEngine {
         const glyph = font.getGlyph(node.name);
         if (glyph) {
           return new GlyphBox(glyph);
+        }
+        // Fallback for multi-character command names: render as upright roman letters
+        if (node.name.length > 1) {
+          const chars = node.name.split('');
+          const allExist = chars.every(c => font.hasGlyph(c));
+          if (allExist) {
+            const children: ChildItem[] = [];
+            let curX = 0;
+            for (const c of chars) {
+              const g = font.getGlyph(c);
+              if (g) {
+                const b = new GlyphBox(g);
+                children.push({ box: b, xOffset: curX, yOffset: 0 });
+                curX += b.width + font.metrics.charSpacing;
+              }
+            }
+            return new HBox(children, curX > 0 ? curX - font.metrics.charSpacing : 0);
+          }
         }
         const fallback = font.getGlyph('?');
         return fallback ? new GlyphBox(fallback) : new SpaceBox(4);
@@ -940,11 +963,15 @@ export class LayoutEngine {
       if (i > 0) {
         const prev = children[i - 1];
 
-        // 1. Function spacing: after \sin or \sin^2 before argument
+        // 1. Function argument spacing: after \sin or \sin^2 before argument
         if (isFunctionOrFunctionScript(prev) && !isBinaryOrRelational(child)) {
           spacing = font.metrics.operatorSpacing + 1; // 3px
         }
-        // 2. Binary operator spacing: e.g. a + b
+        // 2. Function prefix spacing: before \sin or \sin^2 when preceded by an argument/expression (e.g. \sec x \tan x)
+        else if (isFunctionOrFunctionScript(child) && !isBinaryOrRelational(prev) && !isOpeningDelimiter(prev)) {
+          spacing = 2; // 2px separation before functions as in real TeX
+        }
+        // 3. Binary operator spacing: e.g. a + b
         else if (isBinaryOrRelational(child) || isBinaryOrRelational(prev)) {
           const isRel =
             (child.type === 'symbol' && child.symbolType === 'rel') ||
@@ -953,14 +980,14 @@ export class LayoutEngine {
             (prev.type === 'char' && ['=', '<', '>'].includes(prev.value));
           spacing = isRel ? font.metrics.operatorSpacing + 1 : font.metrics.operatorSpacing;
         }
-        // 3. Integral spacing: space after \int or \int_a^b
+        // 4. Integral spacing: space after \int or \int_a^b
         else if (
           (prev.type === 'symbol' && prev.name === 'int') ||
           (prev.type === 'scripts' && prev.base.type === 'symbol' && prev.base.name === 'int')
         ) {
           spacing = 2;
         }
-        // 4. Default spacing between ordinary consecutive elements: guaranteed >= 1px!
+        // 5. Default spacing between ordinary consecutive elements: guaranteed >= 1px!
         else {
           spacing = font.metrics.charSpacing;
         }

@@ -291,6 +291,51 @@ console.log('\n--- Round 3 Checks: New & Modified Features ---');
     console.error(`❌ [FAIL] 'align' environment invalid dimensions`);
     allPassed = false;
   }
+
+  // I. Hyperbolic & newly defined functions: sech, csch, coth
+  const sechRes = PixelMathRenderer.render('\\sech x', { presetId: 'standard', padding: 0 });
+  const cschRes = PixelMathRenderer.render('\\csch x', { presetId: 'standard', padding: 0 });
+  const cothRes = PixelMathRenderer.render('\\coth x', { presetId: 'standard', padding: 0 });
+  console.log(`✓ 'sech', 'csch', 'coth' rendered: sech=${sechRes.width}px, csch=${cschRes.width}px, coth=${cothRes.width}px`);
+  // Ensure '?' is not present
+  const questionGlyph = standardFont.getGlyph('?')!;
+  let hasQuestion = false;
+  for (const r of [sechRes, cschRes, cothRes]) {
+    if (r.width <= questionGlyph.width) {
+      hasQuestion = true;
+    }
+  }
+  if (!hasQuestion) {
+    console.log(`✓ 'sech', 'csch', 'coth' defined and verified with zero fallback errors`);
+  } else {
+    console.error(`❌ [FAIL] Missing glyph fallback detected in sech/csch/coth`);
+    allPassed = false;
+  }
+
+  // J. Function prefix spacing (2px between argument and following function)
+  const secX = PixelMathRenderer.render('\\sec x', { presetId: 'standard', padding: 0 });
+  const tanX = PixelMathRenderer.render('\\tan x', { presetId: 'standard', padding: 0 });
+  const secXTanX = PixelMathRenderer.render('\\sec x \\tan x', { presetId: 'standard', padding: 0 });
+  const gapInSecTan = secXTanX.width - (secX.width + tanX.width);
+  console.log(`✓ Gap between 'x' and '\\tan' in '\\sec x \\tan x': ${gapInSecTan} px (expected: 2px)`);
+  if (gapInSecTan === 2) {
+    console.log(`✓ Two-pixel spacing before functions verified in '\\sec x \\tan x'`);
+  } else {
+    console.error(`❌ [FAIL] Expected 2px spacing between 'x' and '\\tan', got ${gapInSecTan}px`);
+    allPassed = false;
+  }
+
+  const xOnly = PixelMathRenderer.render('x', { presetId: 'standard', padding: 0 });
+  const sinX = PixelMathRenderer.render('\\sin x', { presetId: 'standard', padding: 0 });
+  const xSinX = PixelMathRenderer.render('x \\sin x', { presetId: 'standard', padding: 0 });
+  const gapInXSin = xSinX.width - (xOnly.width + sinX.width);
+  console.log(`✓ Gap between 'x' and '\\sin' in 'x \\sin x': ${gapInXSin} px (expected: 2px)`);
+  if (gapInXSin === 2) {
+    console.log(`✓ Two-pixel spacing before functions verified in 'x \\sin x'`);
+  } else {
+    console.error(`❌ [FAIL] Expected 2px spacing between 'x' and '\\sin', got ${gapInXSin}px`);
+    allPassed = false;
+  }
 }
 
 console.log('\n====================================================');

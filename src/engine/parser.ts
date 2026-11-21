@@ -34,9 +34,26 @@ const BIG_OPS = new Set([
 ]);
 
 const STANDARD_FUNCS = new Set([
+  // Trigonometric
   'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
-  'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh',
-  'ln', 'log', 'exp', 'lim', 'max', 'min', 'det', 'gcd'
+  // Hyperbolic
+  'sinh', 'cosh', 'tanh', 'coth', 'sech', 'csch',
+  // Inverse trigonometric
+  'arcsin', 'arccos', 'arctan', 'arcsec', 'arccsc', 'arccot',
+  'asin', 'acos', 'atan', 'acot', 'asec', 'acsc',
+  // Inverse hyperbolic
+  'arsinh', 'arcosh', 'artanh', 'arsech', 'arcsch', 'arcoth',
+  'asinh', 'acosh', 'atanh', 'acoth', 'asech', 'acsch',
+  // Logarithmic / Exponential
+  'ln', 'log', 'lg', 'exp',
+  // Limits / Extrema
+  'lim', 'liminf', 'limsup', 'max', 'min', 'sup', 'inf', 'injlim', 'projlim',
+  // Algebraic & Operators
+  'det', 'gcd', 'deg', 'dim', 'ker', 'hom', 'arg', 'Pr', 'sgn', 'sinc'
+]);
+
+const LIMITS_FUNCS = new Set([
+  'lim', 'liminf', 'limsup', 'max', 'min', 'sup', 'inf', 'gcd', 'det', 'injlim', 'projlim', 'Pr'
 ]);
 
 export interface Token {
@@ -404,7 +421,25 @@ export class Parser {
 
       // Standard functions
       if (STANDARD_FUNCS.has(cmd)) {
-        return { type: 'function', name: cmd, hasLimits: cmd === 'lim' || cmd === 'max' || cmd === 'min' };
+        return { type: 'function', name: cmd, hasLimits: LIMITS_FUNCS.has(cmd) };
+      }
+
+      // \operatorname{...} and \operatorname*{...}
+      if (cmd === 'operatorname') {
+        let hasLimits = false;
+        if (this.peek().type === 'CHAR' && this.peek().value === '*') {
+          this.next();
+          hasLimits = true;
+        }
+        const item = this.parseGroupOrItem();
+        const extractText = (n: MathNode): string => {
+          if (n.type === 'char') return n.value;
+          if (n.type === 'sequence') return n.children.map(extractText).join('');
+          if (n.type === 'symbol') return n.name;
+          return '';
+        };
+        const name = extractText(item) || 'op';
+        return { type: 'function', name, hasLimits };
       }
 
       // Spacing hierarchy: \, (1px), \: (2px), \; (3px)
